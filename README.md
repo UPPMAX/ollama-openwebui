@@ -37,6 +37,7 @@ Edit the variables at the top of `manage.sh` and run `./manage.sh restart`.
 
 | Variable | Purpose | Default |
 |---|---|---|
+| `OLLAMA_ADDRESS` | Interface Ollama binds to | `127.0.0.1` |
 | `OLLAMA_PORT` | Ollama API port | 11434 |
 | `OPENWEBUI_PORT` | Web UI port | 8080 |
 | `EXTRA_BINDS` | Host paths exposed in containers | `/crex,/proj` |
@@ -111,15 +112,22 @@ Settings -> Account -> API Keys, then puts it in `~/.continue/config.json`:
 ```
 
 Routing through Open WebUI rather than directly at Ollama gives per-user
-authentication.
+authentication. The Ollama port is bound to `127.0.0.1` by default, so it
+isn't reachable from outside the host anyway.
 
 ## Networking
 
-Ollama listens on `0.0.0.0:11434` by default. On an internal network this is
-usually fine. If the host is internet-facing, either set
-`OLLAMA_HOST=127.0.0.1:11434` so only Open WebUI can reach it, or firewall the
-port. Open WebUI (8080) is authenticated and meant to be the public entry
-point. For HTTPS, put a reverse proxy (Caddy, nginx) in front.
+Ollama binds to `OLLAMA_ADDRESS:OLLAMA_PORT`, defaulting to `127.0.0.1:11434`.
+Only Open WebUI (running on the same host) can reach it; users connect through
+the authenticated web UI on port 8080.
+
+If you want to expose the Ollama API to other hosts (e.g. for a separate
+Continue.dev setup that doesn't go through Open WebUI), set
+`OLLAMA_ADDRESS=0.0.0.0` and firewall the port appropriately. Note that the
+Ollama API has no authentication of its own.
+
+For HTTPS on the web UI, put a reverse proxy (Caddy, nginx) in front of
+port 8080.
 
 ## SLURM
 
@@ -168,7 +176,7 @@ services:
     volumes:
       - ./ollama-data:/root/.ollama
     environment:
-      - OLLAMA_HOST=0.0.0.0:11434
+      - OLLAMA_HOST=0.0.0.0:11434   # internal to compose network
     deploy:
       resources:
         reservations:
@@ -188,6 +196,7 @@ services:
       - ollama
 ```
 
-The `taskset` and `num_thread` workarounds become unnecessary under Docker —
-cgroup `cpus:` limits make `nproc` report the right count, and llama.cpp
-auto-detects correctly.# ollama-openwebui
+Under Docker, Ollama can bind `0.0.0.0` safely because the compose network
+isolates it from the host. The `taskset` and `num_thread` workarounds become
+unnecessary — cgroup `cpus:` limits make `nproc` report the right count, and
+llama.cpp auto-detects correctly.
