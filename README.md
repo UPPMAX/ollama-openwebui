@@ -11,6 +11,14 @@ chat with isolated histories, suitable for shared workstations or HPC nodes.
 
 ## Quick start
 
+Assuming you run this on a node on UPPMAX, you have to forward a port to the host you are running the server on. In this example it assumes you have reserved a node and you got `p83`.
+
+```bash
+ssh -A -J user@pelle.uppmax.uu.se -L 8080:localhost:8080 user@p83
+```
+
+Once there, setup the environment and start the server:
+
 ```bash
 ./manage.sh init                     # pull container images
 ./manage.sh start                    # start both services
@@ -87,6 +95,8 @@ To stop accepting new signups once your team is onboarded, set
 For OAuth/SSO, see the Open WebUI [docs](https://docs.openwebui.com/features/sso/)
 and add the relevant env vars to the Open WebUI exec block in `manage.sh`.
 
+To enable users to create API keys, the admin must enable it under Admin Panel -> Settings -> General -> Enable API Keys.
+
 ## Code completion (Continue.dev)
 
 Each user generates a personal API key in Open WebUI under
@@ -94,18 +104,26 @@ Settings -> Account -> API Keys, then puts it in `~/.continue/config.json`:
 
 ```json
 {
-  "models": [{
-    "title": "Qwen2.5-Coder 7B",
-    "provider": "openai",
-    "model": "qwen2.5-coder:7b",
-    "apiBase": "http://your-server:8080/api",
-    "apiKey": "sk-USER-KEY"
-  }],
+  "models": [
+    {
+      "title": "Qwen2.5-Coder 7B",
+      "provider": "openai",
+      "model": "qwen2.5-coder:7b",
+      "apiBase": "http://your-server:8080/api",
+      "apiKey": "sk-USER-KEY"
+    }
+  ],
   "tabAutocompleteModel": {
     "title": "Qwen2.5-Coder 1.5B",
-    "provider": "openai",
+    "provider": "ollama",
     "model": "qwen2.5-coder:1.5b-base",
-    "apiBase": "http://your-server:8080/api",
+    "apiBase": "http://your-server:8080/ollama",
+    "apiKey": "sk-USER-KEY"
+  },
+  "embeddingsProvider": {
+    "provider": "ollama",
+    "model": "nomic-embed-text",
+    "apiBase": "http://your-server:8080/ollama",
     "apiKey": "sk-USER-KEY"
   }
 }
@@ -131,7 +149,7 @@ port 8080.
 
 ## SLURM
 
-`manage.sh` auto-detects `$SLURM_CPUS_PER_TASK`. Example batch script:
+`manage.sh` auto-detects `$SLURM_CPUS_PER_TASK`. Example batch script (untested, but out-of-scope for now):
 
 ```bash
 #!/bin/bash
