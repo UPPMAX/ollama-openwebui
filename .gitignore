@@ -1,0 +1,5 @@
+.apptainer/
+images/
+ollama-data/
+openwebui-data/
+.webui_secret_key
