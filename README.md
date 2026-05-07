@@ -122,7 +122,7 @@ To enable users to create API keys, the admin must enable it under Admin Panel -
 
 ## Code completion (Continue.dev) in VSCode
 
-This example assumes you have the following models pulled:
+This example assumes you have the following models pulled, and that the OpenWebUI is reachable on `http://localhost:8080`
 
 ```bash
 ./manage.sh pull qwen2.5-coder:7b qwen2.5-coder:1.5b-base nomic-embed-text
@@ -134,6 +134,7 @@ Install the Continue.dev plugin for VSCode:
 code --install-extension Continue.continue
 ```
 
+To enable users to create API keys, the admin must enable it under Admin Panel -> Settings -> General -> Enable API Keys.
 Each user generates a personal API key in Open WebUI under
 Settings -> Account -> API Keys, then puts it in `~/.continue/config.json`:
 
@@ -144,7 +145,7 @@ Settings -> Account -> API Keys, then puts it in `~/.continue/config.json`:
       "title": "Qwen2.5-Coder 7B",
       "provider": "openai",
       "model": "qwen2.5-coder:7b",
-      "apiBase": "http://your-server:8080/api",
+      "apiBase": "http://localhost:8080/api",
       "apiKey": "sk-USER-KEY"
     }
   ],
@@ -152,13 +153,13 @@ Settings -> Account -> API Keys, then puts it in `~/.continue/config.json`:
     "title": "Qwen2.5-Coder 1.5B",
     "provider": "ollama",
     "model": "qwen2.5-coder:1.5b-base",
-    "apiBase": "http://your-server:8080/ollama",
+    "apiBase": "http://localhost:8080/ollama",
     "apiKey": "sk-USER-KEY"
   },
   "embeddingsProvider": {
     "provider": "ollama",
     "model": "nomic-embed-text",
-    "apiBase": "http://your-server:8080/ollama",
+    "apiBase": "http://localhost:8080/ollama",
     "apiKey": "sk-USER-KEY"
   }
 }
@@ -167,6 +168,8 @@ Settings -> Account -> API Keys, then puts it in `~/.continue/config.json`:
 Routing through Open WebUI rather than directly at Ollama gives per-user
 authentication. The Ollama port is bound to `127.0.0.1` by default, so it
 isn't reachable from outside the host anyway.
+
+Code completion should work straight away, and press `Ctrl+L` to open a chat window.
 
 ## Networking
 
