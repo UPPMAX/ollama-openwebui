@@ -3,48 +3,48 @@
 set -euo pipefail
 
 # ============================================================
-# CONFIGURATION  -- edit here
+# CONFIGURATION
 # ============================================================
 STACK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Keep all Apptainer state (incl. instance logs) inside the stack dir
+CONFIG_FILE="${STACK_DIR}/config.sh"
+CONFIG_DIST="${STACK_DIR}/config.sh.dist"
+
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    echo "!! No config.sh found." >&2
+    if [[ -f "$CONFIG_DIST" ]]; then
+        echo "   Copy the template and edit it:" >&2
+        echo "   cp ${CONFIG_DIST##*/} ${CONFIG_FILE##*/}" >&2
+    fi
+    exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$CONFIG_FILE"
+
+# Derived / fixed paths (not user-tunable)
 export APPTAINER_CONFIGDIR="${STACK_DIR}/.apptainer"
 
-# Images
 IMAGE_DIR="${STACK_DIR}/images"
 OLLAMA_SIF="${IMAGE_DIR}/ollama.sif"
 OPENWEBUI_SIF="${IMAGE_DIR}/open-webui.sif"
 
-# Source URIs (used by `init`)
-OLLAMA_URI="docker://ollama/ollama:latest"
-OPENWEBUI_URI="docker://ghcr.io/open-webui/open-webui:main"
-
-# Persistent data dirs
 OLLAMA_DATA="${STACK_DIR}/ollama-data"
 OPENWEBUI_DATA="${STACK_DIR}/openwebui-data"
 OLLAMA_CONTAINER_DATA="/opt/ollama"
 
-# Instance names
 OLLAMA_INSTANCE="ollama"
 OPENWEBUI_INSTANCE="open-webui"
 
-# Ports
-OLLAMA_PORT=11434
-OLLAMA_ADDRESS=127.0.0.1
-OPENWEBUI_PORT=8080
-
-# Extra host paths to expose inside the containers
-EXTRA_BINDS="/crex,/proj"
-
-# Open WebUI auth
-WEBUI_AUTH="true"
-ENABLE_SIGNUP="true"
-DEFAULT_USER_ROLE="pending"
 WEBUI_SECRET_KEY_FILE="${STACK_DIR}/.webui_secret_key"
 
-# Ollama tuning
-OLLAMA_NUM_PARALLEL=2
-OLLAMA_FALLBACK_CORES=15
+LOG_DIR="${APPTAINER_CONFIGDIR}/instances/logs/$(hostname)/${USER}"
+
+# Sanity check required vars
+: "${OLLAMA_ADDRESS:?missing in config.sh}"
+: "${OLLAMA_PORT:?missing in config.sh}"
+: "${OPENWEBUI_PORT:?missing in config.sh}"
+: "${OLLAMA_FALLBACK_CORES:?missing in config.sh}"
 
 # ============================================================
 # Helpers
@@ -180,7 +180,7 @@ start() {
     echo
     apptainer instance list
     echo
-    echo ">> Open WebUI:  http://$(hostname):${OPENWEBUI_PORT}"
+    echo ">> Open WebUI:  http://${OPENWEBUI_URL}:${OPENWEBUI_PORT}"
     echo ">> Ollama API:  http://${OLLAMA_ADDRESS}:${OLLAMA_PORT}"
     echo ">> Logs:        ${LOG_DIR}/<instance>.{out,err}"
 }

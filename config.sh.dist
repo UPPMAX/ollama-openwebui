@@ -1,0 +1,30 @@
+# Local LLM Stack configuration
+# Copy to config.sh and edit. Do not commit config.sh.
+
+# ---------- Images ----------
+OLLAMA_URI="docker://ollama/ollama:latest"
+OPENWEBUI_URI="docker://ghcr.io/open-webui/open-webui:main"
+
+# ---------- Networking ----------
+# 127.0.0.1 = only Open WebUI (on the same host) can reach Ollama.
+# 0.0.0.0   = expose Ollama API on all interfaces (no auth -- firewall it).
+OLLAMA_ADDRESS="127.0.0.1"
+OLLAMA_PORT=11434
+
+# OpenWebUI
+OPENWEBUI_PORT=8080
+OPENWEBUI_URL=$(hostname)
+
+# ---------- Bind mounts ----------
+# Comma-separated host paths exposed inside the containers.
+# Useful for accessing project data; must exist on the host.
+EXTRA_BINDS="/crex,/proj"
+
+# ---------- Open WebUI ----------
+WEBUI_AUTH="true"
+ENABLE_SIGNUP="true"
+DEFAULT_USER_ROLE="pending"     # pending | user | admin
+
+# ---------- Ollama tuning ----------
+OLLAMA_NUM_PARALLEL=2                      # concurrent requests per model
+OLLAMA_FALLBACK_CORES=$(( $(nproc) - 1 ))  # used when no SLURM env and no CLI arg

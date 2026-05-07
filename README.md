@@ -7,31 +7,50 @@ chat with isolated histories, suitable for shared workstations or HPC nodes.
 
 - Apptainer >= 1.1
 - ~20 GB disk for images and base models
-- NVIDIA GPU + drivers (optional, for `--nv`)
+- NVIDIA GPU + drivers (optional)
 
 ## Quick start
 
-Assuming you run this on a node on UPPMAX, you have to forward a port to the host you are running the server on. In this example it assumes you have reserved a node and you got `p83`.
+If you are running this on your local computer, just setup the environment and start the server:
 
 ```bash
-ssh -A -J user@pelle.uppmax.uu.se -L 8080:localhost:8080 user@p83
+# clone repo
+git clone git@github.com:UPPMAX/ollama-openwebui.git
+cd ollama-openwebui
+
+# start it
+./manage.sh init                          # pull container images
+./manage.sh start                         # start both services
+./manage.sh pull qwen2.5-coder:1.5b-base  # pull a model
 ```
 
-Once there, setup the environment and start the server:
+Open [http://localhost:8080](http://localhost:8080). The first user to register becomes admin.
+
+## HPC/server specific
+
+If you run this on a node at a HPC center, or any other server you have access to, you will likely not be able to connect to the web server since HPC centres and servers usually have firewalls that will block it. Fortunately we can use port forwarding over SSH to be able to reach it anyway. Follow the same steps as above, but also open a SSH connection to your HPC cluster/server and specify that you want to forward port 8080 on your computer to localhost:8080 on the remote computer:
 
 ```bash
-./manage.sh init                     # pull container images
-./manage.sh start                    # start both services
-./manage.sh pull qwen2.5-coder:7b
+ssh -A -L 8080:localhost:8080 user@example.com
 ```
 
-Open <http://localhost:8080>. The first user to register becomes admin.
+If you are at a HPC center this is likely the login node, and you are not supposed to run demanding stuff there. Then you have to reserve a worker node in you cluster and start the server there. To do the port forwarding to the worker node, you will likely have to use the login node as a *jump host* (`-J`), since worker nodes usually are not directly accessible from outside of the cluster:
+
+```bash
+ssh -A -L 8080:localhost:8080 -J user@example.com user@worker001.example.com
+```
+
+SSH will then connect first to the jump host (login node) and then connect to the worker node (worker001), and forward port 8080 on your computer to localhost:8080 on the worker node.
+
+That's it, just one additional SSH command and you can host your server anywhere :)
+
 
 ## Layout
 
 ```
 llm-stack/
 ├── manage.sh
+├── config.sh              # configuration file
 ├── images/                # .sif container images
 ├── ollama-data/           # models
 ├── openwebui-data/        # users, chats (SQLite)
@@ -41,26 +60,30 @@ llm-stack/
 
 ## Configuration
 
-Edit the variables at the top of `manage.sh` and run `./manage.sh restart`.
+Copy the template and edit:
 
-| Variable | Purpose | Default |
-|---|---|---|
-| `OLLAMA_ADDRESS` | Interface Ollama binds to | `127.0.0.1` |
-| `OLLAMA_PORT` | Ollama API port | 11434 |
-| `OPENWEBUI_PORT` | Web UI port | 8080 |
-| `EXTRA_BINDS` | Host paths exposed in containers | `/crex,/proj` |
-| `ENABLE_SIGNUP` | Show signup form | `true` |
-| `DEFAULT_USER_ROLE` | Role for new signups | `pending` |
-| `OLLAMA_NUM_PARALLEL` | Concurrent requests per model | 2 |
-| `OLLAMA_FALLBACK_CORES` | Cores when no SLURM/arg given | 15 |
+```bash
+cp config.sh.dist config.sh
+$EDITOR config.sh
+```
+
+Then `./manage.sh restart` to apply.
+
+`config.sh.dist` is the canonical list of available options. `config.sh` is
+gitignored so per-host settings don't end up in version control.
+
+Static paths (data dirs, image locations, instance names) live in `manage.sh`
+itself and aren't usually changed.
 
 ### CPU cores
+
+If there is no GPU in the node, ollama will run the models on the CPU instead. It will try to use all the cores unless you tell it not to.
 
 `./manage.sh start` picks the core count in this order:
 
 1. Explicit argument: `./manage.sh start 8`
-2. `$SLURM_CPUS_PER_TASK - 1`
-3. `OLLAMA_FALLBACK_CORES`
+2. Your SLURM booking minus 1 core for the webui: `$SLURM_CPUS_PER_TASK - 1`
+3. All cores minus 1 core for the webui: `OLLAMA_FALLBACK_CORES` in the config file
 
 The chosen count is enforced two ways: `taskset` for kernel affinity, and a
 `num_thread` parameter baked into each model via Modelfile so llama.cpp itself
@@ -97,7 +120,19 @@ and add the relevant env vars to the Open WebUI exec block in `manage.sh`.
 
 To enable users to create API keys, the admin must enable it under Admin Panel -> Settings -> General -> Enable API Keys.
 
-## Code completion (Continue.dev)
+## Code completion (Continue.dev) in VSCode
+
+This example assumes you have the following models pulled:
+
+```bash
+./manage.sh pull qwen2.5-coder:7b qwen2.5-coder:1.5b-base nomic-embed-text
+```
+
+Install the Continue.dev plugin for VSCode:
+
+```bash
+code --install-extension Continue.continue
+```
 
 Each user generates a personal API key in Open WebUI under
 Settings -> Account -> API Keys, then puts it in `~/.continue/config.json`:
@@ -153,6 +188,8 @@ port 8080.
 
 ```bash
 #!/bin/bash
+
+# these options will wary depending on your HPC center
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
 #SBATCH --gres=gpu:1
