@@ -15,7 +15,7 @@ If you are running this on your local computer, just setup the environment and s
 
 ```bash
 # clone repo
-git clone git@github.com:UPPMAX/ollama-openwebui.git
+git clone https://github.com/UPPMAX/ollama-openwebui.git
 cd ollama-openwebui
 
 # start it
