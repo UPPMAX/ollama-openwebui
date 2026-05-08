@@ -1,5 +1,5 @@
 # Local LLM Stack configuration
-# Copy to config.sh and edit. Do not commit config.sh.
+# Copy to config.sh and edit
 
 # ---------- Images ----------
 OLLAMA_URI="docker://ollama/ollama:latest"
@@ -18,7 +18,8 @@ OPENWEBUI_URL=$(hostname)
 # ---------- Bind mounts ----------
 # Comma-separated host paths exposed inside the containers.
 # Useful for accessing project data; must exist on the host.
-EXTRA_BINDS="/crex,/proj"
+# ex.EXTRA_BINDS="/crex,/proj"
+EXTRA_BINDS=""
 
 # ---------- Open WebUI ----------
 WEBUI_AUTH="true"
